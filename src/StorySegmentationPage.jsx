@@ -337,6 +337,50 @@ export default function StorySegmentationPage() {
           </p>
         </Section>
 
+        <Section
+          kicker="Capítulo 4"
+          title="Dónde medimos y dónde capturamos valor"
+          right={
+            <Card>
+              <div className="text-sm font-medium">Regla de oro</div>
+              <div className="mt-2 text-sm text-foreground/85">
+                <p>
+                  No medimos ni capturamos valor igual en todas las etapas: <strong>en Launch y Growth medimos progreso, no ARPA</strong>. La
+                  captura empieza en Scale, y en Strategic se protege y expande.
+                </p>
+              </div>
+            </Card>
+          }
+        >
+          <p className="text-base text-foreground/85 mb-3">
+            Hoy medimos Lite y Core con el mismo set (revenue, ARPA, churn). Eso fuerza objetivos iguales en mundos distintos. <strong>Los indicadores deben
+            seguir la etapa</strong>: primero progreso, después captura de valor.
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Ajustamos las métricas al camino del cliente: evitamos capturar valor en Launch/Growth y empezamos a hacerlo en Scale, manteniéndolo en Strategic.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <div className="text-sm font-medium">Métricas por etapa</div>
+              <ul className="mt-3 list-disc pl-4 text-sm text-foreground/85 leading-relaxed">
+                <li><strong>Launch:</strong> tiempo a “primer valor”; activación de flujos críticos; no ARPA.</li>
+                <li><strong>Growth:</strong> hábito semanal y retención de cohorte; caída de tickets “cómo se hace”.</li>
+                <li><strong>Scale:</strong> uso avanzado; errores críticos por millón de ops; NPS funcional.</li>
+                <li><strong>Strategic:</strong> share de cartera y riesgo de salida (health score financiero + soporte).</li>
+              </ul>
+            </Card>
+            <Card>
+              <div className="text-sm font-medium">Captura de valor</div>
+              <ul className="mt-3 list-disc pl-4 text-sm text-foreground/85 leading-relaxed">
+                <li><strong>Launch:</strong> no capturamos valor; solo evitamos fracaso temprano.</li>
+                <li><strong>Growth:</strong> consolidamos hábito; aún sin presión de upsell.</li>
+                <li><strong>Scale:</strong> inicia captura: estabilidad, performance y upsell selectivo.</li>
+                <li><strong>Strategic:</strong> proteger valor capturado y expandir productos; KPI central = permanencia y share.</li>
+              </ul>
+            </Card>
+          </div>
+        </Section>
+
         <section className="mx-auto max-w-6xl px-6 pb-22">
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
