@@ -4,12 +4,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "hsl(220, 15%, 9%)",
-        foreground: "hsl(0, 0%, 96%)",
-        card: "hsl(220, 12%, 14%)",
-        border: "hsl(220, 12%, 22%)",
-        primary: "210 100% 60%",
-        "muted-foreground": "hsl(220, 10%, 65%)",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: "hsl(var(--card))",
+        border: "hsl(var(--border))",
+        primary: "hsl(var(--primary))",
+        "muted-foreground": "hsl(var(--muted-foreground))",
       },
     },
   },
