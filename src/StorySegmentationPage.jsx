@@ -30,7 +30,9 @@ function buildCustomerSample({ liteShare = 0.6, targetLiteRevenue = 40, points =
     for (let i = 0; i < 40; i++) {
       const mid = (lo + hi) / 2;
       const v = f(mid);
-      if (v > targetY) hi = mid;
+      // f(b) es monótonamente decreciente: a mayor beta, más curvatura y menor share en Lite.
+      // Si estamos por debajo del objetivo, beta es demasiado alta -> bajamos hi.
+      if (v < targetY) hi = mid;
       else lo = mid;
     }
     return (lo + hi) / 2;
@@ -47,24 +49,41 @@ function buildCustomerSample({ liteShare = 0.6, targetLiteRevenue = 40, points =
   const liteRevenuePct = fn(liteShare);
   const coreRevenuePct = 100 - liteRevenuePct;
 
-  // Ruta “mensual” simple: 12 puntos equiespaciados en clientes
-  const monthly = Array.from({ length: 12 }, (_, i) => {
-    const p = (i + 1) / 12;
-    return { month: i + 1, revenuePct: fn(p), clientsPct: p * 100 };
-  });
+  // Serie simple: acumulación de revenue mes a mes para un usuario/cohorte (100% = lo generado en 12 meses).
+  const months = 12;
+  const monthly = [];
+  let mrr = 100;
+  let rate = 0.15; // crecimiento mensual inicial
+  const decay = 0.92; // se desacelera suavemente
+  let total = 0;
+  for (let i = 0; i < months; i++) {
+    mrr *= 1 + rate;
+    total += mrr;
+    rate *= decay;
+    monthly.push({ month: i + 1, cumulativePct: 0 }); // se rellena abajo
+  }
+  let cumulative = 0;
+  mrr = 100;
+  rate = 0.15;
+  for (let i = 0; i < months; i++) {
+    mrr *= 1 + rate;
+    cumulative += mrr;
+    monthly[i].cumulativePct = (cumulative / total) * 100;
+    rate *= decay;
+  }
 
   // Histograma sintético (no monetario) para mostrar “muchos pequeños, pocos grandes”
   const histogram = [];
   let count = 520;
   let bucket = 50; // valor de referencia de revenue de factura
-  const decay = 0.55;
+  const histDecay = 0.55;
   const growth = 1.55;
   for (let i = 0; i < histogramBins; i++) {
     histogram.push({
       bucket: `${Math.round(bucket)}`,
       count: Math.max(1, Math.round(count)),
     });
-    count *= decay;
+    count *= histDecay;
     bucket *= growth;
   }
 
@@ -138,22 +157,29 @@ function MomentumChart({ monthly }) {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Cómo se acumula el valor mes a mes</div>
-        <Pill>Ruta de valor</Pill>
+        <div className="text-sm font-medium">Acumulación mensual por usuario</div>
+        <Pill>12 meses</Pill>
       </div>
       <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={safe} margin={{ top: 12, bottom: 10, left: 6, right: 12 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.35} />
-            <XAxis dataKey="month" tickFormatter={(v) => `M${v}`} />
-            <YAxis domain={[0, 100]} tickFormatter={(v) => `${Math.round(v)}%`} />
-            <Tooltip formatter={(v) => `${Math.round(v)}%`} labelFormatter={(l) => `Mes ${l}`} />
-            <Line type="monotone" dataKey="revenuePct" strokeWidth={2.4} dot={false} />
+            <XAxis dataKey="month" tickFormatter={(v) => `M${v}`} label={{ value: "Mes", position: "insideBottom", offset: -4 }} />
+            <YAxis
+              domain={[0, 100]}
+              tickFormatter={(v) => `${Math.round(v)}%`}
+              label={{ value: "Revenue acumulado (usuario 12m = 100%)", angle: -90, position: "insideLeft", offset: 6 }}
+            />
+            <Tooltip
+              formatter={(v) => `${Math.round(v)}%`}
+              labelFormatter={(l) => `Mes ${l}`}
+            />
+            <Line type="monotone" dataKey="cumulativePct" name="Acumulado" strokeWidth={2.6} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-2 text-xs text-muted-foreground">
-        Cada punto: cuánto revenue acumulado se ha concentrado después de cubrir cierto % de clientes.
+        Cada punto: porcentaje del revenue de 12 meses que ya generó un usuario promedio. Llega a 100% en el mes 12, mostrando que el valor se acumula de forma creciente y se aplana hacia el final.
       </div>
     </Card>
   );
@@ -270,16 +296,15 @@ export default function StorySegmentationPage() {
 
         <Section
           kicker="Capítulo 2"
-          title="El mercado crece por multiplicación, no por sumas lineales"
+          title="El valor de una cohorte crece por multiplicación, no por sumas lineales"
           right={<MomentumChart monthly={monthly} />}
         >
           <p>
-            Los clientes crecen por porcentajes encadenados: mes a mes suman sobre lo que ya tienen. Resultado: muchos pequeños, pocos grandes. Si
-            decidimos “a promedio” mezclamos ambas realidades y perdemos la pista de quién puede escalar.
+            Un usuario no aporta 1/12 del ingreso cada mes: empieza pequeño, gana tracción y luego se estabiliza. El año es la suma de ese recorrido
+            compuesto.
           </p>
           <p className="mt-3">
-            Si medimos y decidimos “por Lite” en bloque, dejamos sin oxígeno a quienes pueden cruzar a la zona de alto valor y damos soporte a quienes
-            probablemente no sobrevivan.
+            Mirar la curva acumulada muestra dónde empujar: si alguien no acelera en los primeros meses, es improbable que llegue a la zona de valor.
           </p>
         </Section>
 
