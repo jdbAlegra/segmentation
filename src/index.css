@@ -5,12 +5,15 @@
 @tailwind utilities;
 
 :root {
-  --background: 220 15% 9%;
-  --foreground: 0 0% 96%;
-  --card: 220 12% 14%;
-  --border: 220 12% 22%;
-  --primary: 210 100% 60%;
-  --muted-foreground: 220 10% 65%;
+  /* Base neutra para legibilidad */
+  --background: 0 0% 100%;         /* blanco */
+  --foreground: 215 25% 17%;       /* gris pizarra oscuro para texto principal */
+  --muted-foreground: 215 16% 45%; /* gris medio para texto secundario */
+
+  /* Acentos de la paleta solicitada */
+  --primary: 178 59% 46%;          /* sm-primary-500 */
+  --card: 180 63% 95%;             /* sm-primary-50 */
+  --border: 177 59% 82%;           /* sm-primary-200 */
 }
 
 * {
@@ -20,6 +23,12 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+h1,
+h2,
+h3 {
+  color: hsl(var(--primary));
 }
 
 .text-muted-foreground {
