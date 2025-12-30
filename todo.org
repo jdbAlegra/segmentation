@@ -1,0 +1,41 @@
+#+title: Todo
+* DONE [100%] Mejora del story telling
+** DONE Sección inicial
+*** DONE Titulo
+Cambiemos el título a "Core y Lite no son segmentos uniformes"
+o algo similar, queremos que los lectores entiendan esto de forma inmediata, y vean en que se relaciona con el estado real
+
+*** DONE Cards iniciales (usuarios tramo actual)
+Las cards de Ususarios tramo actual, deben especificar el tramo, es decir debe decir usuarios tramo Lite (60%)
+
+y en lugar de usuarios tramo B, usuarios tramo Core
+
+Lectura Clave: Lite no es marginal
+** DONE Capitulo 1
+*** DONE  contenido
+Disminuyamos el contenido de texto, quitemos palabras tecnicas y explicquemos muy dummie.
+
+Decidimos self‑service para la parte masiva y foco en la parte “core”. Tiene sentido si ambos grupos fueran homogéneos. Pero en cada tramo conviven negocios recién entrando con otros que ya mueven valor real.
+
+Nuestra segmentación actual divide el 40% del revenue en un grupo y tomamos decisiones como si fuera un grupo uniforme,
+
+La curva muestra por qué: a los 60% de clientes acumulamos ~40% del revenue. Ese peso no puede tratarse como un bloque uniforme: decidir “para Lite” es gestionar 40% del ingreso con un solo trazo.
+
+(reescribe mejor lo anterior sin sonar tecnico)
+*** DONE Grafica
+Mejora la grafica no quiero nada intrincado lineas simples con un comportamiento muy simple y facil de entender que muestre como la concentración es exponencial y que al inicio casi que no hay nada
+** DONE Capitulo 2
+Quita todo lo "lognormal" simplemente di, muchos pequeños, pocos grandes. Decidir a promedio los mezcla.
+
+Deja la parte,
+Si medimos y decidimos “por Lite” en bloque, dejamos sin oxígeno a quienes pueden cruzar a la zona de alto valor y damos soporte a quienes probablemente no sobrevivan.
+** DONE Capitulo 3
+*** DONE Contenido
+Teniendo en cuenta la distribución de la riqueza podríamos segmentar por etapa y crear una estrategia de flujo entre etapas. La segmentación debe tener en cuenta la vurva de concentración y busca generar un flujo entre etapas
+** DONE Capitulo 4
+*** DONE Cards
+Hacerlas mucho mas simples sin tanta carga visual, poner todas las cards abajo o alinear bien la card de la derecha
+*** DONE Contenido
+Explicar brevemente que El valor se captura en scale y strategic, en launch y growth priorizamos uso y llevamos al usuario a escalar
+** DONE Cierre
+la pagina acaba ahí casi cortando todo deja un espacio al final para que no se sienta cortado.

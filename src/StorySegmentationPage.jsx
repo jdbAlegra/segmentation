@@ -124,14 +124,8 @@ function ConcentrationChart({ data, liteX = 60 }) {
       </div>
       <div className="mt-4 h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={safe} margin={{ top: 12, right: 18, bottom: 24, left: 18 }}>
-            <defs>
-              <linearGradient id="fillCurve" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.35} />
+          <LineChart data={safe} margin={{ top: 12, right: 18, bottom: 24, left: 18 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis
               dataKey="p"
               type="number"
@@ -163,12 +157,12 @@ function ConcentrationChart({ data, liteX = 60 }) {
             <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 100, y: 100 }]} strokeDasharray="6 6" stroke="var(--muted-foreground)" />
             {/* Corte interno actual (no decir Lite) */}
             <ReferenceLine x={liteX} strokeDasharray="4 6" strokeWidth={2} stroke="hsl(var(--primary))" />
-            <Area type="monotone" dataKey="cumShare" stroke="hsl(var(--primary))" strokeWidth={2.4} fill="url(#fillCurve)" />
-          </AreaChart>
+            <Line type="monotone" dataKey="cumShare" stroke="hsl(var(--primary))" strokeWidth={3} dot={false} />
+          </LineChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-3 text-xs text-muted-foreground">
-        En X = 60% miramos Y. Si Y es bajo, la mayoría aporta poco y el valor real se concentra arriba.
+        En X = 60% miramos Y. Si Y es bajo, la mayoría aporta poco; el valor se concentra arriba.
       </div>
     </Card>
   );
@@ -264,19 +258,19 @@ export default function StorySegmentationPage() {
             <Pill>Datos simulados con sesgo lognormal</Pill>
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight">
-            El promedio engaña: el valor se concentra arriba, no al centro
+            Core y Lite no son segmentos uniformes
           </h1>
           <p className="mt-4 max-w-3xl text-base text-foreground/80">
-            Si tratamos a todos igual, optimizamos para el cliente promedio que casi no existe. La curva de concentración muestra por qué
-            necesitamos segmentar por etapa, no por etiqueta estática.
+            La base se parece más a una escalera: muchos aportan poco, pocos aportan mucho. Si tratamos a todos igual, decidimos para un promedio
+            que no existe. Necesitamos segmentar por etapa y mover a la gente hacia el tramo que captura valor.
           </p>
           <div className="mt-8 grid gap-3 md:grid-cols-4">
-            <BigNumber label="Usuarios en tramo actual A (≈60%)" value={formatPct(liteUsersPct)} sub="Corte interno vigente" />
-            <BigNumber label="Revenue explicado por ese tramo" value={formatPct(liteRevenuePct)} sub="No es marginal (40%)" />
-            <BigNumber label="Usuarios en tramo B (≈40%)" value={formatPct(coreUsersPct)} sub={`Explican ~${formatPct(coreRevenuePct)} del revenue`} />
+            <BigNumber label="Usuarios tramo Lite" value={formatPct(liteUsersPct)} sub="60% de la base" />
+            <BigNumber label="Revenue explicado por Lite" value={formatPct(liteRevenuePct)} sub="40% del ingreso" />
+            <BigNumber label="Usuarios tramo Core" value={formatPct(coreUsersPct)} sub="40% de la base" />
             <BigNumber
               label="Lectura clave"
-              value="Promedio ≠ negocio"
+              value="Lite no es marginal"
               sub="Decidir por etapa, no por etiqueta"
             />
           </div>
@@ -296,16 +290,16 @@ export default function StorySegmentationPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         <Section
           kicker="Capítulo 1"
-          title="El corte Lite/Core fue lógico, pero demasiado grueso"
+          title="El corte Lite/Core fue lógico, pero quedó demasiado grueso"
           right={<ConcentrationChart data={curve} liteX={liteUsersPct} />}
         >
           <p>
-            Decidimos self‑service para la parte masiva y foco en la parte “core”. Tiene sentido si ambos grupos fueran homogéneos. Pero el tramo
-            masivo es largo: dentro conviven negocios recién entrando con otros que ya mueven valor real.
+            El plan original fue: auto‑servicio para el tramo grande y foco para el tramo core. Suena bien si cada tramo fuera parejo. Pero en el
+            tramo masivo conviven clientes que apenas empiezan con otros que ya valen mucho.
           </p>
           <p className="mt-3">
-            La curva muestra por qué: a los 60% de clientes acumulamos ~{formatPct(liteRevenuePct)} del revenue. Ese peso no puede tratarse como
-            un bloque uniforme: decidir “para Lite” es gestionar 40% del ingreso con un solo trazo.
+            La curva lo hace evidente: al 60% de clientes ya acumulamos ~{formatPct(liteRevenuePct)} del revenue. “Lite” no es un bloque de bajo
+            valor; es mezcla. Decidir “para Lite” es manejar el 40% del ingreso con una sola regla.
           </p>
         </Section>
 
@@ -315,8 +309,8 @@ export default function StorySegmentationPage() {
           right={<MomentumChart monthly={monthly} />}
         >
           <p>
-            Los clientes que escalan lo hacen por porcentajes encadenados (mes sobre mes). Ese mecanismo produce una distribución lognormal: muchos
-            pequeños, pocos muy grandes. Por eso decidir “a promedio” borra la señal de dónde está cada cliente en su trayectoria.
+            Los clientes crecen por porcentajes encadenados: mes a mes suman sobre lo que ya tienen. Resultado: muchos pequeños, pocos grandes. Si
+            decidimos “a promedio” mezclamos ambas realidades y perdemos la pista de quién puede escalar.
           </p>
           <p className="mt-3">
             Si medimos y decidimos “por Lite” en bloque, dejamos sin oxígeno a quienes pueden cruzar a la zona de alto valor y damos soporte a quienes
@@ -332,8 +326,8 @@ export default function StorySegmentationPage() {
             <li><strong>Strategic:</strong> proteger y expandir valor crítico.</li>
           </ul>
           <p className="mt-3">
-            Esta segmentación sigue la curva real de concentración: la pregunta clave es <strong>en qué tramo del camino está cada cliente</strong>,
-            no en qué bucket heredó.
+            Con la curva de concentración a la vista, la pregunta clave es <strong>en qué etapa va cada cliente</strong> y cómo lo movemos al
+            siguiente escalón. La estrategia no es renombrar Lite/Core, es diseñar el flujo entre etapas.
           </p>
         </Section>
 
@@ -342,46 +336,38 @@ export default function StorySegmentationPage() {
           title="Dónde medimos y dónde capturamos valor"
           right={
             <Card>
-              <div className="text-sm font-medium">Regla de oro</div>
+              <div className="text-sm font-medium">Regla simple</div>
               <div className="mt-2 text-sm text-foreground/85">
-                <p>
-                  No medimos ni capturamos valor igual en todas las etapas: <strong>en Launch y Growth medimos progreso, no ARPA</strong>. La
-                  captura empieza en Scale, y en Strategic se protege y expande.
-                </p>
+                En Launch y Growth medimos avance; en Scale y Strategic capturamos valor y lo cuidamos.
               </div>
             </Card>
           }
         >
-          <p className="text-base text-foreground/85 mb-3">
-            Hoy medimos Lite y Core con el mismo set (revenue, ARPA, churn). Eso fuerza objetivos iguales en mundos distintos. <strong>Los indicadores deben
-            seguir la etapa</strong>: primero progreso, después captura de valor.
+          <p className="text-base text-foreground/85 mb-4">
+            Hoy Lite y Core miran los mismos KPIs. Eso mezcla objetivos de arranque con objetivos de captura. <strong>Las métricas deben seguir la etapa</strong>:
+            primero uso y progreso, luego ingreso y retención de valor.
           </p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Ajustamos las métricas al camino del cliente: evitamos capturar valor en Launch/Growth y empezamos a hacerlo en Scale, manteniéndolo en Strategic.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-4">
             <Card>
-              <div className="text-sm font-medium">Métricas por etapa</div>
-              <ul className="mt-3 list-disc pl-4 text-sm text-foreground/85 leading-relaxed">
-                <li><strong>Launch:</strong> tiempo a “primer valor”; activación de flujos críticos; no ARPA.</li>
-                <li><strong>Growth:</strong> hábito semanal y retención de cohorte; caída de tickets “cómo se hace”.</li>
-                <li><strong>Scale:</strong> uso avanzado; errores críticos por millón de ops; NPS funcional.</li>
-                <li><strong>Strategic:</strong> share de cartera y riesgo de salida (health score financiero + soporte).</li>
-              </ul>
+              <div className="text-sm font-semibold">Launch</div>
+              <div className="mt-1 text-sm text-muted-foreground">Quitar fricción y lograr primer valor.</div>
             </Card>
             <Card>
-              <div className="text-sm font-medium">Captura de valor</div>
-              <ul className="mt-3 list-disc pl-4 text-sm text-foreground/85 leading-relaxed">
-                <li><strong>Launch:</strong> no capturamos valor; solo evitamos fracaso temprano.</li>
-                <li><strong>Growth:</strong> consolidamos hábito; aún sin presión de upsell.</li>
-                <li><strong>Scale:</strong> inicia captura: estabilidad, performance y upsell selectivo.</li>
-                <li><strong>Strategic:</strong> proteger valor capturado y expandir productos; KPI central = permanencia y share.</li>
-              </ul>
+              <div className="text-sm font-semibold">Growth</div>
+              <div className="mt-1 text-sm text-muted-foreground">Crear hábito; aún sin capturar valor.</div>
+            </Card>
+            <Card>
+              <div className="text-sm font-semibold">Scale</div>
+              <div className="mt-1 text-sm text-muted-foreground">Estabilidad y performance; empieza la captura.</div>
+            </Card>
+            <Card>
+              <div className="text-sm font-semibold">Strategic</div>
+              <div className="mt-1 text-sm text-muted-foreground">Proteger y ampliar el valor ya capturado.</div>
             </Card>
           </div>
         </Section>
 
-        <section className="mx-auto max-w-6xl px-6 pb-22">
+        <section className="mx-auto max-w-6xl px-6 pb-24">
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

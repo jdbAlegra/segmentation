@@ -1,0 +1,8 @@
+#+title: Progreso
+
+* 2025-12-30 Ajustes de storytelling y paleta
+- Revisé todo.org y listé requerimientos de copy, gráficas y layout.
+- Actualicé paleta: fondo blanco, texto gris oscuro, acentos aqua (sm-primary-500).
+- Simplifiqué la curva de concentración a línea clara con baseline y corte 60%.
+- Reescribí hero, cards y capítulos 1-4 para lenguaje simple y enfoque por etapas.
+- Añadí margen inferior (pb-24) para evitar corte abrupto.
