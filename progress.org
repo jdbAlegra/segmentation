@@ -6,3 +6,16 @@
 - Simplifiqué la curva de concentración a línea clara con baseline y corte 60%.
 - Reescribí hero, cards y capítulos 1-4 para lenguaje simple y enfoque por etapas.
 - Añadí margen inferior (pb-24) para evitar corte abrupto.
+
+* 2025-12-30 Gráfica suave sin quiebre
+- Reemplacé el generador aleatorio por curva analítica y=(x/100)^alpha que pasa por (60%,40%) sin picos.
+- Mantengo ruta mensual derivada de la misma curva para consistencia visual.
+- Limpieza de pill: “Datos sintéticos suavizados”.
+
+* 2025-12-30 Curva más marcada (convexa)
+- Recalibré la curva usando forma exponencial y=(e^{βx}-1)/(e^β-1) resolviendo β para que 60% clientes ≈ 40% revenue.
+- La curva arranca más pegada al eje y sube más decidido, enfatizando concentración.
+
+* 2025-12-30 Histograma de distribución
+- Reemplacé la visual principal por un BarChart de distribución de revenue por cliente (bins crecientes, caída rápida).
+- Datos sintéticos deterministas: muchos clientes con poco revenue, pocos con mucho, bajando casi a cero al final.

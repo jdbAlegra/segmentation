@@ -1,7 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
-  AreaChart,
-  Area,
   CartesianGrid,
   Tooltip,
   XAxis,
@@ -10,82 +8,67 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  BarChart,
+  Bar,
 } from "recharts";
 import { motion } from "framer-motion";
 
 // Tailwind assumed. Drop this file into a Vite/React app and render <StorySegmentationPage />.
 
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-
 const formatPct = (n) => `${Math.round(n)}%`;
 
-// Deterministic lognormal-ish generator so the story feels stable on every render.
-function buildCustomerSample({ seed = 9, customers = 520, liteShare = 0.6, targetLiteRevenue = 40 }) {
-  let s = seed >>> 0;
-  const rand = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return (s & 0xffffffff) / 0x100000000;
+// Curva suave convexa: y = (exp(beta*x) - 1) / (exp(beta) - 1), calibrada para que 60% clientes ≈ 40% revenue.
+// Además generamos un histograma sintético altamente sesgado (muchos bajos, pocos altos).
+function buildCustomerSample({ liteShare = 0.6, targetLiteRevenue = 40, points = 101, histogramBins = 12 }) {
+  const targetY = targetLiteRevenue / 100;
+
+  // Resolvemos beta por búsqueda binaria para que f(liteShare) ≈ targetY.
+  const solveBeta = () => {
+    let lo = 0.01;
+    let hi = 6;
+    const f = (b) => (Math.exp(b * liteShare) - 1) / (Math.exp(b) - 1);
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      const v = f(mid);
+      if (v > targetY) hi = mid;
+      else lo = mid;
+    }
+    return (lo + hi) / 2;
   };
 
-  // Generate skew: many pequeños, pocos grandes
-  const rows = Array.from({ length: customers }, () => {
-    // lognormal via Box–Muller on log space
-    const u = Math.max(1e-9, rand());
-    const v = Math.max(1e-9, rand());
-    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-    // center around low revenue, add rare jumps
-    const base = Math.exp(0.3 + 1.05 * z);
-    const jump = rand() < 0.08 ? Math.exp(1.4 * rand()) : 1;
-    const revenue = Math.max(0.08, base * jump);
-    return { id: crypto.randomUUID?.() ?? `${rand()}`, revenue };
+  const beta = solveBeta();
+  const fn = (p) => ((Math.exp(beta * p) - 1) / (Math.exp(beta) - 1)) * 100;
+
+  const curve = Array.from({ length: points }, (_, i) => {
+    const p = (i / (points - 1));
+    return { p: p * 100, cumShare: fn(p) };
   });
 
-  // Sort ascending, then build cumulative percents (Lorenz-style)
-  const sorted = rows.sort((a, b) => a.revenue - b.revenue);
-  const total = sorted.reduce((acc, c) => acc + c.revenue, 0);
-  const cum = [];
-  let running = 0;
-  sorted.forEach((c, i) => {
-    running += c.revenue;
-    const pClients = ((i + 1) / customers) * 100;
-    const pRevenue = (running / total) * 100;
-    cum.push({ p: pClients, cumShare: pRevenue });
-  });
-
-  // Ajuste: forzar que en el percentil Lite (60% clientes) se observe ~40% revenue,
-  // conservando 100% en el extremo superior para que la lectura sea coherente con el brief.
-  const liteIdx = Math.floor(customers * liteShare);
-  const currentLite = cum[liteIdx - 1]?.cumShare ?? 0.0001;
-  const targetLite = targetLiteRevenue;
-  const factorLow = targetLite / currentLite;
-  const factorHigh = (100 - targetLite) / (100 - currentLite);
-
-  const adjusted = cum.map((d) => {
-    if (d.p <= liteShare * 100) {
-      return { ...d, cumShare: clamp(d.cumShare * factorLow, 0, targetLite) };
-    }
-    const above = d.cumShare - currentLite;
-    const newShare = targetLite + above * factorHigh;
-    return { ...d, cumShare: clamp(newShare, 0, 100) };
-  });
-
-  // Cohort facts (used in copy) — now aligned to the target distribution
-  const liteRevenuePct = targetLite;
+  const liteRevenuePct = fn(liteShare);
   const coreRevenuePct = 100 - liteRevenuePct;
 
-  // Time path to show how value piles on: cumulative curve sampled over "months"
-  const monthly = [];
-  const step = Math.max(4, Math.floor(customers / 13));
-  for (let i = step; i <= customers; i += step) {
-      const point = adjusted[i - 1] ?? cum[i - 1];
-      monthly.push({
-        month: monthly.length + 1,
-        revenuePct: point?.cumShare ?? 0,
-        clientsPct: (i / customers) * 100,
-      });
+  // Ruta “mensual” simple: 12 puntos equiespaciados en clientes
+  const monthly = Array.from({ length: 12 }, (_, i) => {
+    const p = (i + 1) / 12;
+    return { month: i + 1, revenuePct: fn(p), clientsPct: p * 100 };
+  });
+
+  // Histograma sintético (no monetario) para mostrar “muchos pequeños, pocos grandes”
+  const histogram = [];
+  let count = 520;
+  let bucket = 50; // valor de referencia de revenue de factura
+  const decay = 0.55;
+  const growth = 1.55;
+  for (let i = 0; i < histogramBins; i++) {
+    histogram.push({
+      bucket: `${Math.round(bucket)}`,
+      count: Math.max(1, Math.round(count)),
+    });
+    count *= decay;
+    bucket *= growth;
   }
 
-  return { curve: adjusted, liteRevenuePct, coreRevenuePct, monthly };
+  return { curve, liteRevenuePct, coreRevenuePct, monthly, histogram };
 }
 
 const Pill = ({ children }) => (
@@ -113,56 +96,38 @@ const Section = ({ kicker, title, right, children }) => (
   </section>
 );
 
-function ConcentrationChart({ data, liteX = 60 }) {
-  const safe = Array.isArray(data) && data.length ? data : [{ p: 0, cumShare: 0 }, { p: 100, cumShare: 100 }];
-
+function HistogramChart({ data }) {
+  const safe = Array.isArray(data) && data.length ? data : [];
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Cómo se concentra el revenue</div>
-        <Pill>Lectura de 5s</Pill>
+        <div className="text-sm font-medium">Cómo se reparte el revenue por cliente</div>
+        <Pill>Distribución</Pill>
       </div>
       <div className="mt-4 h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={safe} margin={{ top: 12, right: 18, bottom: 24, left: 18 }}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <BarChart data={safe} margin={{ top: 12, right: 12, left: 0, bottom: 24 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
             <XAxis
-              dataKey="p"
-              type="number"
-              domain={[0, 100]}
-              tickFormatter={(v) => `${Math.round(v)}%`}
-              label={{
-                value: "% de clientes (ordenados de menor a mayor facturación)",
-                position: "insideBottom",
-                offset: -8,
-              }}
+              dataKey="bucket"
+              label={{ value: "Revenue por cliente (bins)", position: "insideBottom", offset: -8 }}
+              tick={{ fontSize: 11 }}
             />
             <YAxis
-              type="number"
-              domain={[0, 100]}
-              tickFormatter={(v) => `${Math.round(v)}%`}
-              label={{
-                value: "% acumulado del revenue total",
-                angle: -90,
-                position: "insideLeft",
-                offset: 4,
-              }}
+              tick={{ fontSize: 11 }}
+              label={{ value: "Cantidad de clientes", angle: -90, position: "insideLeft", offset: 4 }}
             />
             <Tooltip
-              formatter={(v) => `${Number(v).toFixed(0)}%`}
-              labelFormatter={(l) => `${Number(l).toFixed(0)}% de clientes`}
+              formatter={(v) => `${v} clientes`}
+              labelFormatter={(l) => `Bin: ${l}`}
               contentStyle={{ borderRadius: 12, borderColor: "var(--border)", fontSize: 12 }}
             />
-            {/* Línea de igualdad */}
-            <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 100, y: 100 }]} strokeDasharray="6 6" stroke="var(--muted-foreground)" />
-            {/* Corte interno actual (no decir Lite) */}
-            <ReferenceLine x={liteX} strokeDasharray="4 6" strokeWidth={2} stroke="hsl(var(--primary))" />
-            <Line type="monotone" dataKey="cumShare" stroke="hsl(var(--primary))" strokeWidth={3} dot={false} />
-          </LineChart>
+            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-3 text-xs text-muted-foreground">
-        En X = 60% miramos Y. Si Y es bajo, la mayoría aporta poco; el valor se concentra arriba.
+        Muchos clientes facturan muy poco; unos pocos concentran casi todo. El histograma cae rápido y roza cero al final.
       </div>
     </Card>
   );
@@ -235,7 +200,7 @@ export default function StorySegmentationPage() {
   const liteUsersPct = 60;
   const coreUsersPct = 40;
 
-  const { curve, liteRevenuePct, coreRevenuePct, monthly } = useMemo(
+  const { curve, liteRevenuePct, coreRevenuePct, monthly, histogram } = useMemo(
     () => buildCustomerSample({ liteShare: liteUsersPct / 100, targetLiteRevenue: 40 }),
     []
   );
@@ -255,7 +220,7 @@ export default function StorySegmentationPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Pill>Historia para decisión</Pill>
             <Pill>Segmentación accionable</Pill>
-            <Pill>Datos simulados con sesgo lognormal</Pill>
+            <Pill>Datos sintéticos suavizados</Pill>
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight">
             Core y Lite no son segmentos uniformes
@@ -291,15 +256,15 @@ export default function StorySegmentationPage() {
         <Section
           kicker="Capítulo 1"
           title="El corte Lite/Core fue lógico, pero quedó demasiado grueso"
-          right={<ConcentrationChart data={curve} liteX={liteUsersPct} />}
+          right={<HistogramChart data={histogram} />}
         >
           <p>
             El plan original fue: auto‑servicio para el tramo grande y foco para el tramo core. Suena bien si cada tramo fuera parejo. Pero en el
             tramo masivo conviven clientes que apenas empiezan con otros que ya valen mucho.
           </p>
           <p className="mt-3">
-            La curva lo hace evidente: al 60% de clientes ya acumulamos ~{formatPct(liteRevenuePct)} del revenue. “Lite” no es un bloque de bajo
-            valor; es mezcla. Decidir “para Lite” es manejar el 40% del ingreso con una sola regla.
+            El 60% de clientes ya acumulamos ~40% del revenue. “Lite” no es un bloque de bajo valor; es mezcla.
+            Decidir “para Lite” es manejar el 40% del ingreso con una sola regla.
           </p>
         </Section>
 
